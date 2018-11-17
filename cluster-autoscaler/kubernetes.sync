@@ -1,0 +1,8 @@
+commit d05f0e76b094d85df3a071ff80c27d66a0c05695 (origin/release-1.12)
+Merge: d3bc471868 7d4b3e7a6f
+Author: k8s-ci-robot <k8s-ci-robot@users.noreply.github.com>
+Date:   Sun Nov 4 21:48:17 2018 -0800
+
+    Merge pull request #70399 from feiskyer/automated-cherry-pick-of-#70353-upstream-release-1.12
+    
+    Automated cherry pick of #70353: Improve Azure instance metadata handling
