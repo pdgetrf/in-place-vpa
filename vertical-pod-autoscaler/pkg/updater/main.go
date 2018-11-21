@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	updaterInterval = flag.Duration("updater-interval", 1*time.Minute,
+	updaterInterval = flag.Duration("updater-interval", 5*time.Second,
 		`How often updater should run`)
 
 	minReplicas = flag.Int("min-replicas", 2,

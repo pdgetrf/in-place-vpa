@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/resource"
 	vpa_types "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/poc.autoscaling.k8s.io/v1alpha1"
 	vpa_clientset "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/client/clientset/versioned"
 	vpa_api "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/client/clientset/versioned/typed/poc.autoscaling.k8s.io/v1alpha1"
@@ -30,6 +31,7 @@ import (
 	metrics_recommender "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/utils/metrics/recommender"
 	vpa_api_util "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/utils/vpa"
 	"k8s.io/client-go/rest"
+	api "k8s.io/api/core/v1"
 )
 
 const (
@@ -87,7 +89,48 @@ func (r *recommender) UpdateVPAs() {
 		if !found {
 			continue
 		}
-		resources := r.podResourceRecommender.GetRecommendedPodResources(GetContainerNameToAggregateStateMap(vpa))
+
+		/* hack a fake recommendation */
+		//resources := r.podResourceRecommender.GetRecommendedPodResources(GetContainerNameToAggregateStateMap(vpa))
+
+
+		containerResources := make([]vpa_types.RecommendedContainerResources, 0, 2)
+
+/*
+		rlCpuTarget := api.ResourceList{}
+		rlCpuTarget["cpu"] = resource.MustParse("500m")
+		rlCpuLower := api.ResourceList{}
+		rlCpuLower["cpu"] = resource.MustParse("600m")
+		rlCpuUpper := api.ResourceList{}
+		rlCpuUpper["cpu"] = resource.MustParse("700m")
+*/
+
+		rlMemTarget := api.ResourceList{}
+		rlMemTarget["memory"] = resource.MustParse("128Mi")
+		rlMemLower := api.ResourceList{}
+		rlMemLower["memory"] = resource.MustParse("64Mi")
+		rlMemUpper := api.ResourceList{}
+		rlMemUpper["memory"] = resource.MustParse("256Mi")
+
+/*
+		containerResources = append(containerResources, vpa_types.RecommendedContainerResources{
+				ContainerName: "hamster",
+				Target:        rlCpuTarget,
+				LowerBound:    rlCpuLower,
+				UpperBound:    rlCpuUpper,
+			})
+*/
+
+		containerResources = append(containerResources, vpa_types.RecommendedContainerResources{
+				ContainerName: "hamster",
+				Target:        rlMemTarget,
+				LowerBound:    rlMemLower,
+				UpperBound:    rlMemUpper,
+			})
+
+
+		glog.Infof("============ %+v", containerResources)
+/*
 		containerResources := make([]vpa_types.RecommendedContainerResources, 0, len(resources))
 		for containerName, res := range resources {
 			containerResources = append(containerResources, vpa_types.RecommendedContainerResources{
@@ -98,6 +141,7 @@ func (r *recommender) UpdateVPAs() {
 			})
 
 		}
+*/
 		had := vpa.HasRecommendation()
 		vpa.Recommendation = &vpa_types.RecommendedPodResources{containerResources}
 		// Set RecommendationProvided if recommendation not empty.
