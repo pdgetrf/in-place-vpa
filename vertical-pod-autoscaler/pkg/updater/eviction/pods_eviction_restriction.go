@@ -19,10 +19,12 @@ package eviction
 import (
 	"fmt"
 
+        "encoding/json"
 	"github.com/golang/glog"
 	apiv1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	metrics_updater "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/utils/metrics/updater"
 	kube_client "k8s.io/client-go/kubernetes"
 )
@@ -36,6 +38,7 @@ type PodsEvictionRestriction interface {
 	Evict(pod *apiv1.Pod) error
 	// CanEvict checks if pod can be safely evicted
 	CanEvict(pod *apiv1.Pod) bool
+	PatchPodAnnotation(pod *apiv1.Pod, annotations map[string]string) error
 }
 
 type podsEvictionRestrictionImpl struct {
@@ -92,6 +95,23 @@ func (e *podsEvictionRestrictionImpl) CanEvict(pod *apiv1.Pod) bool {
 		}
 	}
 	return false
+}
+
+func (e *podsEvictionRestrictionImpl) PatchPodAnnotation(pod *apiv1.Pod, annotations map[string]string) error {
+        jsonStr, err := json.Marshal(annotations)
+        if err != nil {
+                return fmt.Errorf("error marshalling annotations %v/%v (%v): %v", pod.Namespace, pod.Name, pod.UID, err)
+        }
+
+	patch := fmt.Sprintf(`{"metadata":{"annotations": %s}}`, jsonStr)
+
+	_, err = e.client.CoreV1().Pods(pod.Namespace).Patch(pod.Name, types.StrategicMergePatchType, []byte(patch))
+	if err != nil {
+		glog.Errorf("failed to patch pod %s, error: %v", pod.Name, err)
+		return err
+	}
+
+	return nil
 }
 
 // Evict sends eviction instruction to api client. Returns error if pod cannot be evicted or if client returned error

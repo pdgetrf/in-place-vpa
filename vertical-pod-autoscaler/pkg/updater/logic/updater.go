@@ -23,6 +23,7 @@ import (
 	"k8s.io/autoscaler/vertical-pod-autoscaler/pkg/updater/priority"
 
 	apiv1 "k8s.io/api/core/v1"
+        "encoding/json"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	vpa_types "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/poc.autoscaling.k8s.io/v1alpha1"
@@ -36,6 +37,16 @@ import (
 
 	"github.com/golang/glog"
 )
+
+const (
+        AnnotationResizeResourcesPolicy     = "scheduler.alpha.kubernetes.io/resize-resources-policy"
+        AnnotationResizeResourcesRequestVer = "scheduler.alpha.kubernetes.io/resize-resources-request-version"
+        AnnotationResizeResourcesRequest    = "scheduler.alpha.kubernetes.io/resize-resources-request"
+        AnnotationResizeResourcesActionVer  = "scheduler.alpha.kubernetes.io/resize-resources-action-version"
+        AnnotationResizeResourcesAction     = "scheduler.alpha.kubernetes.io/resize-resources-action"
+        AnnotationResizeResourcesPrevious   = "scheduler.alpha.kubernetes.io/resize-resources-previous"
+)
+
 
 // Updater performs updates on pods if recommended by Vertical Pod Autoscaler
 type Updater interface {
@@ -119,6 +130,44 @@ func (u *updater) RunOnce() {
 		evictionLimiter := u.evictionFactory.NewPodsEvictionRestriction(livePods)
 		podsForUpdate := u.getPodsUpdateOrder(filterNonEvictablePods(livePods, evictionLimiter), vpa)
 
+		/*********************/
+
+		cMap := make(map[string]apiv1.ResourceList)
+		recommendation := vpa.Status.Recommendation
+		if recommendation!=nil && len(recommendation.ContainerRecommendations)>0 {
+			for _, cr := range recommendation.ContainerRecommendations {
+				cMap[cr.ContainerName] = cr.Target
+			}
+		}
+
+
+		for _, pod := range podsForUpdate {
+
+			var resourceUpdates []apiv1.Container
+			for _, podContainer := range pod.Spec.Containers {
+
+				var patch apiv1.Container
+				if target, exists := cMap[podContainer.Name]; exists {
+					patch.Resources.Requests = target
+				}
+
+				patch.Name = podContainer.Name
+				resourceUpdates = append(resourceUpdates, patch)
+			}
+
+			anno := make(map[string]string)
+			jsonStr, _ := json.Marshal(resourceUpdates)
+                        anno[AnnotationResizeResourcesRequest] = string(jsonStr)
+                        anno[AnnotationResizeResourcesRequestVer] = pod.ResourceVersion
+
+
+			glog.Infof("xxxxxxxxxxxx %+v", anno)
+			evictionLimiter.PatchPodAnnotation(pod, anno)
+		}
+
+		/*********************/
+
+		/*
 		for _, pod := range podsForUpdate {
 			if !evictionLimiter.CanEvict(pod) {
 				continue
@@ -129,6 +178,7 @@ func (u *updater) RunOnce() {
 				glog.Warningf("evicting pod %v failed: %v", pod.Name, evictErr)
 			}
 		}
+		*/
 	}
 	timer.ObserveStep("EvictPods")
 	timer.ObserveTotal()

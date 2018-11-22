@@ -42,7 +42,6 @@ func newReadyVPALister(stopChannel <-chan struct{}) vpa_lister.VerticalPodAutosc
 	if err != nil {
 		glog.Fatal(err)
 	}
-	glog.Infof("=========== %+v",config)
 	vpaClient := vpa_clientset.NewForConfigOrDie(config)
 	return vpa_api_util.NewAllVpasLister(vpaClient, stopChannel)
 }
