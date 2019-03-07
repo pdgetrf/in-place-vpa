@@ -201,7 +201,6 @@ func (s *AdmissionServer) admit(data []byte) (*v1beta1.AdmissionResponse, metric
 
 // Serve is a handler function of AdmissionServer
 func (s *AdmissionServer) Serve(w http.ResponseWriter, r *http.Request) {
-	glog.Infof("=========== serving %+v", r)
 	timer := metrics_admission.NewAdmissionLatency()
 
 	var body []byte

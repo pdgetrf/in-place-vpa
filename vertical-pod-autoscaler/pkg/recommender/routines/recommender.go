@@ -128,8 +128,6 @@ func (r *recommender) UpdateVPAs() {
 				UpperBound:    rlMemUpper,
 			})
 
-
-		glog.Infof("============ %+v", containerResources)
 /*
 		containerResources := make([]vpa_types.RecommendedContainerResources, 0, len(resources))
 		for containerName, res := range resources {
