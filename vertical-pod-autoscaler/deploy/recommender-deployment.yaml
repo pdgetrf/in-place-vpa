@@ -20,7 +20,7 @@ spec:
       containers:
       - name: recommender
         image: k8s.gcr.io/vpa-recommender:0.2.0
-        imagePullPolicy: Always
+        imagePullPolicy: Never
         resources:
           limits:
             cpu: 200m

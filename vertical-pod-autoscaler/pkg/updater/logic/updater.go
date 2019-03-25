@@ -161,8 +161,8 @@ func (u *updater) RunOnce() {
                         anno[AnnotationResizeResourcesRequestVer] = pod.ResourceVersion
 
 
-			glog.Infof("xxxxxxxxxxxx %+v", anno)
 			evictionLimiter.PatchPodAnnotation(pod, anno)
+			glog.Infof("patched annotation %+v", anno)
 		}
 
 		/*********************/
